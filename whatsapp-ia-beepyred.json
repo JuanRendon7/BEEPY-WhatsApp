@@ -99,7 +99,7 @@
     {
       "parameters": {
         "mode": "runOnceForAllItems",
-        "jsCode": "const body = $input.first().json.body || $input.first().json;\nconst entry = body.entry?.[0];\nconst value = entry?.changes?.[0]?.value;\n\nif (!value?.messages || value.messages.length === 0) {\n  return [];\n}\n\nconst msg = value.messages[0];\nconst contact = value.contacts?.[0];\n\nif (msg.type !== 'text') {\n  return [];\n}\n\nlet phoneSinCodigo = msg.from;\nif (phoneSinCodigo.startsWith('57') && phoneSinCodigo.length > 10) {\n  phoneSinCodigo = phoneSinCodigo.substring(2);\n}\n\nreturn [{\n  json: {\n    phoneSinCodigo,\n    phoneConCodigo: msg.from,\n    clientName: contact?.profile?.name || 'Cliente',\n    messageText: msg.text?.body || '',\n    messageId: msg.id,\n    phoneNumberId: value.metadata?.phone_number_id\n  }\n}];"
+        "jsCode": "const body = $input.first().json.body || $input.first().json;\nconst entry = body.entry?.[0];\nconst value = entry?.changes?.[0]?.value;\n\nif (!value?.messages || value.messages.length === 0) {\n  return [];\n}\n\nconst msg = value.messages[0];\nconst contact = value.contacts?.[0];\n\nif (msg.type !== 'text') {\n  return [];\n}\n\nlet phoneSinCodigo = msg.from;\nif (phoneSinCodigo.startsWith('57') && phoneSinCodigo.length > 10) {\n  phoneSinCodigo = phoneSinCodigo.substring(2);\n}\n\nreturn [{\n  json: {\n    phoneSinCodigo,\n    phoneConCodigo: msg.from,\n    clientName: contact?.profile?.name || 'Cliente',\n    messageText: msg.text?.body || '',\n    messageId: msg.id,\n    phoneNumberId: value.metadata?.phone_number_id,\n    receivedAt: Date.now()\n  }\n}];"
       },
       "id": "node-extract",
       "name": "Extraer mensaje",
@@ -139,7 +139,7 @@
     {
       "parameters": {
         "mode": "runOnceForAllItems",
-        "jsCode": "const instrucciones = `Eres Beepy, el asistente de WhatsApp de BEEPYRED, un proveedor de internet por fibra optica y radioenlace en San Luis (Antioquia). Atiendes a clientes actuales y a personas interesadas.\\n\\nTONO: Claro, cercano, respetuoso. Mensajes cortos para celular. Tratas de usted por defecto. Nada de menus ni tono robotico. Saludas una sola vez.\\n\\nREGLAS DE ORO:\\n- No inventes nada. Si no tienes el dato, dilo y pasa a una persona.\\n- Cobertura: responde segun la lista de zonas. Si no aparece, no prometas cobertura. Toma los datos y escala.\\n- Nunca confirmes fecha exacta de instalacion.\\n- Nunca afirmes que una falla ya quedo solucionada.\\n- No cierras ventas ni tomas decisiones (descuentos, reconexiones, reclamos): escala.\\n\\nFALLAS DE SERVICIO:\\n- Paso 1: revisar luces del router (todas verdes = ok, roja = reportar cual).\\n- Paso 2: apagar equipo 30 segundos y volver a encender.\\n- Paso 3: si no mejora, ofrecer cambio de clave wifi o visita tecnica.\\n- Guia UN paso a la vez.\\n\\nCUANDO ESCALAR:\\n- Fuera de tus categorias, queja, persona molesta, temas de dinero, o cuando no estes seguro.\\n- Incluye EXACTAMENTE este texto en tu respuesta: [ESCALAR_A_HUMANO]\\n- Antes dile al cliente que lo pasas con una persona.\\n\\nFORMATO: Una idea por mensaje. Frases cortas. Una pregunta a la vez. Sin emojis salvo que la persona los use.`;\n\nconst conocimiento = `PLANES DE INTERNET:\\n\\nZona urbana (fibra optica) - Instalacion gratis:\\n- 150 Mbps: $63.000/mes\\n- 250 Mbps: $103.000/mes\\n- 320 Mbps: $123.000/mes\\n\\nZona rural (radioenlace) - Instalacion: $80.000:\\n- 5 Mbps: $63.000/mes\\n- 10 Mbps: $73.000/mes\\n- 15 Mbps: $83.000/mes\\n- 20 Mbps: $103.000/mes\\n\\nCOBERTURA:\\n- Zona urbana: todo el casco urbano de San Luis (fibra optica).\\n- Veredas (radioenlace): Cuba, San Francisco, La Sirena, La Josefina, Altavista, Rioclaro, El Prodigio.\\n- Proximamente: vereda El Cruce (no agendar aun).\\n- Otra zona: NO prometer. Tomar datos y escalar.\\n\\nINSTALACION:\\n- Datos: nombre, cedula, correo, telefono, direccion, plan, nombre y clave wifi.\\n- Tiempo: 1 a 3 dias habiles (no confirmar fecha exacta).\\n\\nFACTURACION: Mes vencido. Pago dia 30. Suspension dia 5 del mes siguiente.\\n\\nFORMAS DE PAGO:\\n- Efectivo en oficina.\\n- Transferencia: Bancolombia, cuenta corriente 32500000912.\\n- Enviar comprobante por WhatsApp.\\n\\nSUSPENSION VOLUNTARIA: Estar al dia y dar fecha de retiro del equipo.\\n\\nHORARIO: Lun-Vie 8am-12pm y 1pm-5pm. Sab 8am-12pm.\\nOFICINA: Cra 19 #20-50, Int 202, Parque principal, San Luis.\\nWHATSAPP: 3185191300.`;\n\nlet clientContext = '';\ntry {\n  const wh = $('Buscar en WispHub').first().json;\n  const results = wh?.results || [];\n  if (results.length > 0) {\n    const c = results[0];\n    clientContext = `DATOS DEL CLIENTE (WispHub):\\n- Nombre: ${c.nombre || c.usuario || 'N/D'}\\n- Plan: ${c.plan_internet_nombre || c.plan_internet || 'N/D'}\\n- Estado: ${c.estado || 'N/D'}\\n- Zona: ${c.zona_nombre || c.zona || 'N/D'}\\n- ID servicio: ${c.id || 'N/D'}`;\n  } else {\n    clientContext = 'Este numero NO esta registrado como cliente. Puede ser un interesado.';\n  }\n} catch (e) {\n  clientContext = 'No se pudo consultar WispHub. Responde con la base de conocimiento.';\n}\n\nconst prev = $('Extraer mensaje').first().json;\nconst fullSystem = `${instrucciones}\\n\\n---\\n${conocimiento}\\n\\n---\\n${clientContext}`;\n\nreturn [{\n  json: {\n    system: fullSystem,\n    userMessage: `${prev.clientName} dice: \"${prev.messageText}\"`,\n    phoneConCodigo: prev.phoneConCodigo,\n    phoneNumberId: prev.phoneNumberId\n  }\n}];"
+        "jsCode": "const instrucciones = `Eres Beepy, el asistente de WhatsApp de BEEPYRED, un proveedor de internet por fibra optica y radioenlace en San Luis (Antioquia). Atiendes a clientes actuales y a personas interesadas.\\n\\nTONO: Claro, cercano, respetuoso. Mensajes cortos para celular. Tratas de usted por defecto. Nada de menus ni tono robotico. Saludas una sola vez.\\n\\nREGLAS DE ORO:\\n- No inventes nada. Si no tienes el dato, dilo y pasa a una persona.\\n- Cobertura: responde segun la lista de zonas. Si no aparece, no prometas cobertura. Toma los datos y escala.\\n- Nunca confirmes fecha exacta de instalacion.\\n- Nunca afirmes que una falla ya quedo solucionada.\\n- No cierras ventas ni tomas decisiones (descuentos, reconexiones, reclamos): escala.\\n\\nFALLAS DE SERVICIO:\\n- Paso 1: revisar luces del router (todas verdes = ok, roja = reportar cual).\\n- Paso 2: apagar equipo 30 segundos y volver a encender.\\n- Paso 3: si no mejora, ofrecer cambio de clave wifi o visita tecnica.\\n- Guia UN paso a la vez.\\n\\nCUANDO ESCALAR:\\n- Fuera de tus categorias, queja, persona molesta, temas de dinero, o cuando no estes seguro.\\n- Incluye EXACTAMENTE este texto en tu respuesta: [ESCALAR_A_HUMANO]\\n- Antes dile al cliente que lo pasas con una persona.\\n\\nFORMATO: Una idea por mensaje. Frases cortas. Una pregunta a la vez. Sin emojis salvo que la persona los use.`;\n\nconst conocimiento = `PLANES DE INTERNET:\\n\\nZona urbana (fibra optica) - Instalacion gratis:\\n- 150 Mbps: $63.000/mes\\n- 250 Mbps: $103.000/mes\\n- 320 Mbps: $123.000/mes\\n\\nZona rural (radioenlace) - Instalacion: $80.000:\\n- 5 Mbps: $63.000/mes\\n- 10 Mbps: $73.000/mes\\n- 15 Mbps: $83.000/mes\\n- 20 Mbps: $103.000/mes\\n\\nCOBERTURA:\\n- Zona urbana: todo el casco urbano de San Luis (fibra optica).\\n- Veredas (radioenlace): Cuba, San Francisco, La Sirena, La Josefina, Altavista, Rioclaro, El Prodigio.\\n- Proximamente: vereda El Cruce (no agendar aun).\\n- Otra zona: NO prometer. Tomar datos y escalar.\\n\\nINSTALACION:\\n- Datos: nombre, cedula, correo, telefono, direccion, plan, nombre y clave wifi.\\n- Tiempo: 1 a 3 dias habiles (no confirmar fecha exacta).\\n\\nFACTURACION: Mes vencido. Pago dia 30. Suspension dia 5 del mes siguiente.\\n\\nFORMAS DE PAGO:\\n- Efectivo en oficina.\\n- Transferencia: Bancolombia, cuenta corriente 32500000912.\\n- Enviar comprobante por WhatsApp.\\n\\nSUSPENSION VOLUNTARIA: Estar al dia y dar fecha de retiro del equipo.\\n\\nHORARIO: Lun-Vie 8am-12pm y 1pm-5pm. Sab 8am-12pm.\\nOFICINA: Cra 19 #20-50, Int 202, Parque principal, San Luis.\\nWHATSAPP: 3185191300.`;\n\nlet clientContext = '';\nlet clientRegistered = false;\ntry {\n  const wh = $('Buscar en WispHub').first().json;\n  const results = wh?.results || [];\n  if (results.length > 0) {\n    clientRegistered = true;\n    const c = results[0];\n    clientContext = `DATOS DEL CLIENTE (WispHub):\\n- Nombre: ${c.nombre || c.usuario || 'N/D'}\\n- Plan: ${c.plan_internet_nombre || c.plan_internet || 'N/D'}\\n- Estado: ${c.estado || 'N/D'}\\n- Zona: ${c.zona_nombre || c.zona || 'N/D'}\\n- ID servicio: ${c.id || 'N/D'}`;\n  } else {\n    clientContext = 'Este numero NO esta registrado como cliente. Puede ser un interesado.';\n  }\n} catch (e) {\n  clientContext = 'No se pudo consultar WispHub. Responde con la base de conocimiento.';\n}\n\nconst prev = $('Extraer mensaje').first().json;\nconst fullSystem = `${instrucciones}\\n\\n---\\n${conocimiento}\\n\\n---\\n${clientContext}`;\n\nreturn [{\n  json: {\n    system: fullSystem,\n    userMessage: `${prev.clientName} dice: \"${prev.messageText}\"`,\n    phoneConCodigo: prev.phoneConCodigo,\n    phoneNumberId: prev.phoneNumberId,\n    clientName: prev.clientName,\n    messageText: prev.messageText,\n    clientRegistered,\n    receivedAt: prev.receivedAt\n  }\n}];"
       },
       "id": "node-prompt",
       "name": "Construir prompt",
@@ -173,7 +173,7 @@
     {
       "parameters": {
         "mode": "runOnceForAllItems",
-        "jsCode": "const claudeResponse = $input.first().json;\nconst textBlock = claudeResponse.content?.find(b => b.type === 'text');\nlet replyText = textBlock?.text || 'Lo siento, no pude procesar su mensaje. Un asesor le ayudara en breve.';\n\nconst shouldEscalate = replyText.includes('[ESCALAR_A_HUMANO]');\nreplyText = replyText.replace('[ESCALAR_A_HUMANO]', '').trim();\n\nif (replyText.length > 4000) {\n  replyText = replyText.substring(0, 3997) + '...';\n}\n\nreturn [{\n  json: {\n    replyText,\n    shouldEscalate,\n    phoneConCodigo: $('Construir prompt').first().json.phoneConCodigo,\n    phoneNumberId: $('Construir prompt').first().json.phoneNumberId\n  }\n}];"
+        "jsCode": "const claudeResponse = $input.first().json;\nconst textBlock = claudeResponse.content?.find(b => b.type === 'text');\nlet replyText = textBlock?.text || 'Lo siento, no pude procesar su mensaje. Un asesor le ayudara en breve.';\n\nconst shouldEscalate = replyText.includes('[ESCALAR_A_HUMANO]');\nreplyText = replyText.replace('[ESCALAR_A_HUMANO]', '').trim();\n\nif (replyText.length > 4000) {\n  replyText = replyText.substring(0, 3997) + '...';\n}\n\nconst prev = $('Construir prompt').first().json;\n\nreturn [{\n  json: {\n    replyText,\n    shouldEscalate,\n    phoneConCodigo: prev.phoneConCodigo,\n    phoneNumberId: prev.phoneNumberId,\n    clientName: prev.clientName,\n    messageText: prev.messageText,\n    clientRegistered: prev.clientRegistered,\n    receivedAt: prev.receivedAt\n  }\n}];"
       },
       "id": "node-format",
       "name": "Preparar respuesta",
@@ -202,6 +202,29 @@
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
       "position": [1560, 300]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://{{ $env.DASHBOARD_URL }}/api/events",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "x-api-key", "value": "={{ $env.DASHBOARD_API_KEY }}" },
+            { "name": "Content-Type", "value": "application/json" }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"phone\": {{ JSON.stringify($json.phoneConCodigo) }},\n  \"clientName\": {{ JSON.stringify($json.clientName) }},\n  \"clientRegistered\": {{ !!$json.clientRegistered }},\n  \"messageText\": {{ JSON.stringify($json.messageText) }},\n  \"replyText\": {{ JSON.stringify($json.replyText) }},\n  \"escalated\": {{ !!$json.shouldEscalate }},\n  \"receivedAt\": {{ $json.receivedAt }}\n}",
+        "options": {}
+      },
+      "id": "node-log-event",
+      "name": "Registrar evento",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1560, 460],
+      "onError": "continueRegularOutput"
     }
   ],
   "connections": {
@@ -218,7 +241,14 @@
     "Buscar en WispHub": { "main": [[{ "node": "Construir prompt", "type": "main", "index": 0 }]] },
     "Construir prompt": { "main": [[{ "node": "Llamar a Claude", "type": "main", "index": 0 }]] },
     "Llamar a Claude": { "main": [[{ "node": "Preparar respuesta", "type": "main", "index": 0 }]] },
-    "Preparar respuesta": { "main": [[{ "node": "Enviar por WhatsApp", "type": "main", "index": 0 }]] }
+    "Preparar respuesta": {
+      "main": [
+        [
+          { "node": "Enviar por WhatsApp", "type": "main", "index": 0 },
+          { "node": "Registrar evento", "type": "main", "index": 0 }
+        ]
+      ]
+    }
   },
   "settings": { "executionOrder": "v1" },
   "staticData": null,
